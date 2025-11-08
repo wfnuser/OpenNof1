@@ -3,7 +3,7 @@ Binance Futures Trader implementation using CCXT
 Handles real futures trading operations
 """
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import ccxt
 from datetime import datetime
 
@@ -90,6 +90,7 @@ class BinanceFuturesTrader(ExchangeTrader):
         order = self.exchange.create_market_buy_order(symbol, quantity, params={'positionSide': 'LONG'})
         logger.info(f"开多仓订单执行: {order['id']}")
         
+        
         # 2. 设置止损单（如果指定）
         if stop_loss_price:
             try:
@@ -125,6 +126,7 @@ class BinanceFuturesTrader(ExchangeTrader):
         # 1. 先开仓
         order = self.exchange.create_market_sell_order(symbol, quantity, params={'positionSide': 'SHORT'})
         logger.info(f"开空仓订单执行: {order['id']}")
+        
         
         # 2. 设置止损单（如果指定）
         if stop_loss_price:
@@ -180,7 +182,10 @@ class BinanceFuturesTrader(ExchangeTrader):
         await self.cancel_all_orders(symbol)
         
         # 执行平仓
-        self.exchange.create_market_sell_order(symbol, quantity, params={'positionSide': 'LONG'})
+        order = self.exchange.create_market_sell_order(symbol, quantity, params={'positionSide': 'LONG'})
+        
+        
+        return order
     
     async def close_short(self, symbol: str, quantity: float = 0):
         """平空仓（quantity=0表示全部平仓）"""
@@ -211,7 +216,10 @@ class BinanceFuturesTrader(ExchangeTrader):
         await self.cancel_all_orders(symbol)
         
         # 执行平仓
-        self.exchange.create_market_buy_order(symbol, quantity, params={'positionSide': 'SHORT'})
+        order = self.exchange.create_market_buy_order(symbol, quantity, params={'positionSide': 'SHORT'})
+        
+        
+        return order
     
     async def set_leverage(self, symbol: str, leverage: int) -> bool:
         """设置杠杆"""
@@ -269,6 +277,7 @@ class BinanceFuturesTrader(ExchangeTrader):
     def get_exchange_name(self) -> str:
         """获取交易所名称"""
         return "binance_futures"
+    
     
 
 

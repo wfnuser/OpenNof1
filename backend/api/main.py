@@ -41,6 +41,16 @@ async def lifespan(app: FastAPI):
         logger.error(f"数据库初始化失败: {e}")
         raise
     
+    # Initialize trading history service
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        await history_service.initialize_if_needed()
+        logger.info("交易历史服务初始化完成")
+    except Exception as e:
+        logger.error(f"交易历史服务初始化失败: {e}")
+        # 这个错误不应该阻止系统启动，记录警告即可
+    
     # Check configuration
     missing_vars = config.validate_required_env_vars()
     if missing_vars:

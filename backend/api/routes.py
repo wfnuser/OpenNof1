@@ -567,3 +567,148 @@ async def get_market_price(symbol: str):
         raise HTTPException(status_code=500, detail=f"获取价格失败: {str(e)}")
 
 
+# 历史数据相关API
+class BalanceHistoryResponse(BaseModel):
+    timestamp: str
+    value: float
+
+
+class OrderHistoryResponse(BaseModel):
+    order_id: str
+    symbol: str
+    side: str
+    type: str
+    amount: float
+    price: Optional[float] = None
+    filled: float
+    status: str
+    order_type_detail: Optional[str] = None
+    created_time: str
+    filled_time: Optional[str] = None
+    cost: float
+    fee: float
+
+
+class TradeStatsResponse(BaseModel):
+    totalTrades: int
+    totalVolume: float
+    totalPnl: float
+    totalPnlPercent: float
+    winRate: float
+    avgTradeSize: float
+    maxDrawdown: float
+    sharpeRatio: float
+    activePositions: int
+
+
+@router.get("/trading/balance/history", response_model=List[BalanceHistoryResponse])
+async def get_balance_history(days: int = 30):
+    """获取余额历史"""
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        
+        balance_history = await history_service.get_balance_history(days=days)
+        
+        return [
+            BalanceHistoryResponse(
+                timestamp=record["timestamp"],
+                value=record["value"]
+            )
+            for record in balance_history
+        ]
+        
+    except Exception as e:
+        logger.error(f"获取余额历史失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取余额历史失败: {str(e)}")
+
+
+@router.get("/trading/orders/history", response_model=List[OrderHistoryResponse])
+async def get_order_history(symbol: Optional[str] = None, limit: int = 100):
+    """获取订单历史"""
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        
+        order_history = await history_service.get_order_history(symbol=symbol, limit=limit)
+        
+        return [
+            OrderHistoryResponse(**order)
+            for order in order_history
+        ]
+        
+    except Exception as e:
+        logger.error(f"获取订单历史失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取订单历史失败: {str(e)}")
+
+
+@router.get("/trading/stats", response_model=TradeStatsResponse)
+async def get_trade_stats(days: int = 30):
+    """获取交易统计"""
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        
+        stats = await history_service.get_trade_statistics(days=days)
+        
+        return TradeStatsResponse(**stats)
+        
+    except Exception as e:
+        logger.error(f"获取交易统计失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取交易统计失败: {str(e)}")
+
+
+@router.post("/trading/history/reset")
+async def reset_trading_history(init_time: Optional[str] = None):
+    """重置交易历史系统（清空所有数据并重新初始化）"""
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        
+        # 解析初始化时间
+        parsed_init_time = None
+        if init_time:
+            try:
+                parsed_init_time = datetime.fromisoformat(init_time.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="无效的时间格式，请使用ISO格式")
+        
+        # 重置系统
+        result = await history_service.reset_system(parsed_init_time)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"重置交易历史失败: {e}")
+        raise HTTPException(status_code=500, detail=f"重置失败: {str(e)}")
+
+
+@router.post("/trading/history/sync")
+async def sync_trading_history(full_sync: bool = False):
+    """手动同步交易历史"""
+    try:
+        from trading.history_service import get_history_service
+        history_service = get_history_service()
+        
+        if full_sync:
+            order_count = await history_service.sync_historical_orders(full_sync=True)
+            trade_count = await history_service.sync_historical_trades(full_sync=True)
+        else:
+            order_count = await history_service.sync_recent_orders(24)
+            trade_count = await history_service.sync_recent_trades(24)
+        
+        # 记录当前余额快照
+        await history_service.record_balance_snapshot()
+        
+        return {
+            "success": True,
+            "message": f"{'全量' if full_sync else '增量'}同步完成",
+            "synced_orders": order_count,
+            "synced_trades": trade_count
+        }
+        
+    except Exception as e:
+        logger.error(f"同步交易历史失败: {e}")
+        raise HTTPException(status_code=500, detail=f"同步失败: {str(e)}")
+
+

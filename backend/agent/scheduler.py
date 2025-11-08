@@ -102,7 +102,13 @@ class AgentScheduler:
         try:
             logger.info("开始执行 AI 交易分析")
             
-            # 准备初始状态
+            # 1. 记录余额快照
+            await self._record_balance_snapshot()
+            
+            # 2. 同步最新的订单和交易数据
+            await self._sync_recent_data()
+            
+            # 3. 准备初始状态
             initial_state = {
                 "symbol_decisions": {},
                 "overall_summary": None,
@@ -113,7 +119,7 @@ class AgentScheduler:
                 }
             }
             
-            # 执行工作流程（包含 save_analysis_node）
+            # 4. 执行工作流程（包含 save_analysis_node）
             result = await self.workflow_chain.ainvoke(initial_state)
             
             if result.get("error"):
@@ -126,6 +132,30 @@ class AgentScheduler:
             logger.error(f"执行分析时发生错误: {e}")
             # 对于错误情况，工作流程中的 save_analysis_node 会处理保存
             pass
+    
+    async def _record_balance_snapshot(self):
+        """记录余额快照"""
+        try:
+            from trading.history_service import get_history_service
+            history_service = get_history_service()
+            await history_service.record_balance_snapshot()
+        except Exception as e:
+            logger.error(f"记录余额快照失败: {e}")
+    
+    async def _sync_recent_data(self):
+        """同步最新的订单和交易数据"""
+        try:
+            from trading.history_service import get_history_service
+            history_service = get_history_service()
+            
+            # 只同步最近的数据，避免每次都全量同步
+            # 这里可以根据需要调整同步策略
+            await history_service.sync_historical_orders()
+            await history_service.sync_historical_trades()
+            
+        except Exception as e:
+            logger.error(f"同步最新数据失败: {e}")
+            # 这个错误不应该影响AI分析，所以只记录日志
     
     def get_status(self) -> dict:
         """获取调度器状态"""

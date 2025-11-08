@@ -45,6 +45,7 @@ async def trading_execution_node(state: AgentState) -> AgentState:
                 open_decisions[symbol] = decision
             elif action == "HOLD":
                 # HOLD 操作直接标记为完成
+                logger.info(f"{symbol}: HOLD - AI决策持仓观望，无需执行交易操作")
                 decision["execution_result"] = {
                     "status": "success",
                     "action": action,
@@ -116,7 +117,7 @@ async def _execute_futures_trading(symbol: str, decision: Dict[str, Any], trader
     try:
         # 处理 HOLD 操作
         if action == "HOLD":
-            logger.info(f"{symbol}: HOLD - 无需执行交易")
+            logger.info(f"{symbol}: HOLD - AI决策持仓观望，无需执行交易操作")
             return {
                 "status": "success",
                 "action": action,

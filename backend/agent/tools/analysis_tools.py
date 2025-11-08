@@ -170,7 +170,6 @@ def tech_analysis_tool(symbol: str) -> Dict[str, Any]:
         
         
         logger.info(f"{symbol} 多时间框架技术分析完成")
-        logger.info(f"{result}")
         return result
         
     except Exception as e:
