@@ -17,10 +17,9 @@ const AccountChart: React.FC<AccountChartProps> = ({ data }) => {
   };
 
   const currentValue = data[data.length - 1]?.value || 0;
-  const previousValue = data[data.length - 2]?.value || 0;
   const initialValue = data[0]?.value || 0;
-  const change = currentValue - previousValue;
-  const changePercent = previousValue !== 0 ? (change / previousValue) * 100 : 0;
+  const change = currentValue - initialValue;  // 总盈亏 (相对于初始值)
+  const changePercent = initialValue !== 0 ? (change / initialValue) * 100 : 0;
   
   // 根据总盈亏情况确定线条颜色 (统一使用 Tailwind 的 green-600 和 red-600)
   const isProfit = currentValue >= initialValue;
