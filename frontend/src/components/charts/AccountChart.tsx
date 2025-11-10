@@ -76,18 +76,18 @@ const AccountChart: React.FC<AccountChartProps> = ({ data }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="pb-2 flex-shrink-0">
-        <div className="flex flex-col space-y-2">
-          <div className="text-center">
-            <h3 className="text-sm font-bold tracking-wider uppercase text-black">
+      <div className="pb-1 flex-shrink-0">
+        <div className="flex flex-col space-y-1">
+          <div className="text-center hidden sm:block">
+            <h3 className="text-xs font-bold tracking-wider uppercase text-black">
               Total Account Value
             </h3>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-black">
+            <div className="text-xl sm:text-2xl font-bold text-black">
               {formatNumber(currentValue)}
             </div>
-            <div className={`text-sm font-medium ${
+            <div className={`text-xs sm:text-sm font-medium ${
               change >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>
               {change >= 0 ? '+' : ''}{formatNumber(change)} ({changePercent.toFixed(2)}%)
@@ -95,16 +95,17 @@ const AccountChart: React.FC<AccountChartProps> = ({ data }) => {
           </div>
         </div>
       </div>
-      <div className="pb-4 flex-1 min-h-0">
+      <div className="pb-1 sm:pb-2 flex-1 min-h-0">
         <div className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 2, right: 15, left: 15, bottom: 2 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
               <XAxis 
                 dataKey="timestamp" 
                 tickFormatter={formatAxisValue}
-                tick={{ fontSize: 12, fontFamily: 'IBM Plex Mono' }}
+                tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }}
                 stroke="#666666"
+                height={25}
               />
               <YAxis 
                 tickFormatter={(value) => {
@@ -116,8 +117,9 @@ const AccountChart: React.FC<AccountChartProps> = ({ data }) => {
                     return `$${value.toFixed(0)}`;
                   }
                 }}
-                tick={{ fontSize: 12, fontFamily: 'IBM Plex Mono' }}
+                tick={{ fontSize: 11, fontFamily: 'IBM Plex Mono' }}
                 stroke="#666666"
+                width={50}
               />
               <Tooltip content={<CustomTooltip />} />
               <Line 
