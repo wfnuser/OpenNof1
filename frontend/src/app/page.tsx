@@ -169,7 +169,7 @@ export default function TradingDashboard() {
                 <Twitter size={16} className="md:w-[18px] md:h-[18px] text-gray-700 hover:text-black" />
               </a>
               <a 
-                href="https://github.com/wfnuser" 
+                href="https://github.com/wfnuser/OpenNof1" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 hover:bg-gray-100 rounded-full transition-colors duration-200"
