@@ -108,7 +108,15 @@ const AccountChart: React.FC<AccountChartProps> = ({ data }) => {
                 stroke="#666666"
               />
               <YAxis 
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => {
+                  if (value >= 1000000) {
+                    return `$${(value / 1000000).toFixed(1)}M`;
+                  } else if (value >= 1000) {
+                    return `$${(value / 1000).toFixed(0)}k`;
+                  } else {
+                    return `$${value.toFixed(0)}`;
+                  }
+                }}
                 tick={{ fontSize: 12, fontFamily: 'IBM Plex Mono' }}
                 stroke="#666666"
               />
