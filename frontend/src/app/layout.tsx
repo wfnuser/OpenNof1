@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Alpha Transformer - Your AI Trading Dashboard',
-  description: 'Dashboard for AI trading agent performance monitoring',
+  description: 'Your custom 24/7 AI trading agent made for you.',
 }
 
 export default function RootLayout({
