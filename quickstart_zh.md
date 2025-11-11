@@ -112,19 +112,13 @@ default_risk:
 
 ## 运行系统
 
-### 1. 初始化数据库
-```bash
-# SQLite 数据库会在首次运行时自动创建
-# 无需额外设置
-```
-
-### 2. 数据库设置
+### 1. 数据库设置
 ```bash
 # SQLite 数据库会在首次运行时自动创建
 # 无需手动设置
 ```
 
-### 3. 启动交易代理
+### 2. 启动交易代理
 ```bash
 cd backend
 uv run python main.py
@@ -136,7 +130,7 @@ uv run python main.py
 3. 通过 Binance Futures 执行交易
 4. 记录所有决策和执行过程
 
-### 4. 启动前端面板
+### 3. 启动前端面板
 ```bash
 # 新开一个终端
 cd frontend

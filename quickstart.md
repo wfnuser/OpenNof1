@@ -112,19 +112,13 @@ default_risk:
 
 ## Running the System
 
-### 1. Initialize Database
-```bash
-# SQLite database will be created automatically on first run
-# No additional setup required
-```
-
-### 2. Database Setup
+### 1. Database Setup
 ```bash
 # SQLite database is created automatically on first run
 # No manual setup required
 ```
 
-### 3. Start the Trading Agent
+### 2. Start the Trading Agent
 ```bash
 cd backend
 uv run python main.py
@@ -136,7 +130,7 @@ The agent will:
 3. Execute trades through Binance Futures
 4. Log all decisions and executions
 
-### 4. Start Frontend Dashboard
+### 3. Start Frontend Dashboard
 ```bash
 # In another terminal
 cd frontend

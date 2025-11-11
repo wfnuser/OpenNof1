@@ -86,8 +86,8 @@ _Live trading dashboard showing real-time P&L tracking, AI decisions, and positi
 ## Inspiration & References
 
 - **[nof1.ai](https://nof1.ai)**
-- **[nofx]**(https://github.com/NoFxAiOS/nofx)
-- **[nof0]**(https://github.com/wquguru/nof0)
+- **[nofx](https://github.com/NoFxAiOS/nofx)**
+- **[nof0](https://github.com/wquguru/nof0)**
 
 ## Team
 
