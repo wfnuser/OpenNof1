@@ -10,7 +10,8 @@ import StatsCard from '@/components/stats/StatsCard';
 import { formatNumber } from '@/lib/utils';
 import { fetchAccountData, fetchDecisions, fetchPositions, fetchStats } from '@/lib/api';
 import type { AccountValue, Decision, Position, TradeStats } from '@/lib/types';
-import { Twitter, Github } from 'lucide-react';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 
 const DECISIONS_PAGE_SIZE = 20;
 
@@ -20,18 +21,15 @@ export default function TradingDashboard() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [stats, setStats] = useState<TradeStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
   const [hasMoreDecisions, setHasMoreDecisions] = useState(true);
   const [isLoadingMoreDecisions, setIsLoadingMoreDecisions] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const loadData = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) {
         setLoading(true);
       }
 
-      setError(null);
-      setIsOffline(false);
 
       const [accountDataResult, decisionsResult, positionsResult, statsResult] = await Promise.all([
         fetchAccountData({ includeAll: true }),
@@ -57,9 +55,6 @@ export default function TradingDashboard() {
       });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
-      setError(errorMessage);
-      setIsOffline(true);
 
       if (isInitial) {
         setStats({
@@ -120,7 +115,7 @@ export default function TradingDashboard() {
     return (
       <div className="min-h-screen bg-white font-mono flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl font-bold mb-2">ALPHA TRANSFORMER</div>
+          <div className="text-2xl font-bold mb-2">OpenNof1</div>
           <div className="text-sm text-muted-foreground">Loading trading data...</div>
         </div>
       </div>
@@ -131,7 +126,7 @@ export default function TradingDashboard() {
     return (
       <div className="min-h-screen bg-white font-mono flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl font-bold mb-2">ALPHA TRANSFORMER</div>
+          <div className="text-2xl font-bold mb-2">OpenNof1</div>
           <div className="text-sm text-red-600">Failed to load trading data</div>
         </div>
       </div>
@@ -139,50 +134,30 @@ export default function TradingDashboard() {
   }
 
   return (
-    <div className="h-screen bg-white font-mono flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b-2 border-black px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider">Alpha TRANSFORMER</h1>
-            <div className="hidden md:block text-sm text-muted-foreground">Your AI Trading Dashboard</div>
-          </div>
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <div className="text-xs md:text-sm font-medium flex items-center space-x-1 md:space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isOffline ? 'bg-red-500' : 'bg-green-500'}`} />
-              <span className="hidden sm:inline">{isOffline ? 'Offline' : 'Live Trading'} • </span>
-              <span className="hidden md:inline">{new Date().toLocaleDateString()}</span>
-              {error && (
-                <span className="text-red-600 text-xs ml-1 md:ml-2" title={error}>
-                  Error
-                </span>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
-              <a 
-                href="https://twitter.com/intent/follow?screen_name=weiraolilun" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                title="Tend to follow"
-              >
-                <Twitter size={16} className="md:w-[18px] md:h-[18px] text-gray-700 hover:text-black" />
-              </a>
-              <a 
-                href="https://github.com/wfnuser/OpenNof1" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                title="View GitHub profile"
-              >
-                <Github size={16} className="md:w-[18px] md:h-[18px] text-gray-700 hover:text-black" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="h-screen bg-white font-mono flex">
+      {/* Sidebar */}
+      <Sidebar 
+        className="hidden lg:block" 
+        isOpen={sidebarOpen} 
+        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+      />
+      
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <Header 
+          title="OpenNof1"
+          showMobileTitle={true}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
 
-      {/* Main Content */}
+        {/* Mobile Sidebar */}
+        <Sidebar 
+          className="lg:hidden" 
+          isOpen={sidebarOpen} 
+          onToggle={() => setSidebarOpen(!sidebarOpen)} 
+        />
+
+        {/* Main Content */}
       <div className="flex flex-col flex-1 min-h-0">
         {/* Chart and Stats Section - Always visible */}
         <div className="lg:flex lg:flex-row lg:flex-1 lg:min-h-0">
@@ -301,6 +276,7 @@ export default function TradingDashboard() {
               <PositionsList positions={positions} />
             </TabsContent>
           </Tabs>
+        </div>
         </div>
       </div>
     </div>

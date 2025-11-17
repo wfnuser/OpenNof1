@@ -241,6 +241,35 @@ export async function fetchAgentStatus() {
   return apiRequest('/agent/status');
 }
 
+// Trading Strategy API types
+interface TradingStrategyResponse {
+  strategy: string;
+}
+
+interface TradingStrategyUpdateResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+}
+
+// Trading Strategy API functions
+export async function fetchTradingStrategy(): Promise<TradingStrategyResponse> {
+  return apiRequest<TradingStrategyResponse>('/trading/strategy');
+}
+
+export async function updateTradingStrategy(strategy: string): Promise<TradingStrategyUpdateResponse> {
+  return apiRequest<TradingStrategyUpdateResponse>('/trading/strategy', {
+    method: 'POST',
+    body: JSON.stringify({ strategy }),
+  });
+}
+
+export async function resetTradingStrategy(): Promise<TradingStrategyUpdateResponse> {
+  return apiRequest<TradingStrategyUpdateResponse>('/trading/strategy', {
+    method: 'DELETE',
+  });
+}
+
 // Utility function to create real-time data updates
 export function createDataStream<T>(
   fetchFn: () => Promise<T>,

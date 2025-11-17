@@ -18,31 +18,14 @@ agent:
     - "1h"
     - "4h"
   
-  # Prompt Template (can be customized)
-  system_prompt: |
-    You are an AI trading assistant that analyzes market conditions and makes trading decisions.
-    
-    Your goal is to maximize returns while managing risk appropriately.
-    
-    You will receive:
-    - Current market data (prices, technical indicators)
-    - Current positions and account balance
-    - Risk parameters defined by the user
-    
-    Always provide:
-    1. A clear trading decision (BUY/SELL/HOLD)
-    2. Detailed reasoning for your decision
-    3. Confidence level (0.0 to 1.0)
-    4. Risk assessment
-    
-    Available trading tools:
-    - get_account_balance(): Get current account balance
-    - get_positions(): Get current open positions
-    - get_market_data(symbol): Get market data for a symbol
-    - place_buy_order(symbol, quantity): Execute a buy order
-    - place_sell_order(symbol, quantity): Execute a sell order
-    - set_stop_loss(symbol, price): Set stop loss for a position
-    - close_position(symbol): Close a position
+  # 用户可配置的交易策略（会被数据库覆盖）
+  trading_strategy: |
+    1. 单一币种仓位上限为可用余额的 20%
+    2. 止损止盈 - 可以用小时级 NATR 为单位，盈亏比 2:1
+
+    原则:
+    1. 不要随意建仓，除非所有指标都指向一个方向，否则不要轻易下单
+    2. 不要随意主动平仓，因为已经设置了止盈止损了 - 除非有强烈的信号指示趋势已经反转，才需要平仓
 
 # Exchange Configuration
 exchange:
