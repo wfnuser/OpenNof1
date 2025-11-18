@@ -155,7 +155,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="h-screen bg-white font-mono flex">
+    <div className="min-h-screen lg:h-screen bg-white font-mono flex overflow-hidden">
       {/* Sidebar */}
       <Sidebar
         className="hidden lg:block"
@@ -163,7 +163,7 @@ export default function SettingsPage() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden pt-[60px] md:pt-[62px]">
         {/* Header */}
         <Header
           title="SYSTEM SETTINGS"
@@ -178,7 +178,7 @@ export default function SettingsPage() {
         />
 
         {/* Main Content */}
-        <div className="flex-1 p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Bot Control Section */}
             <div className="border-2 border-black bg-white">

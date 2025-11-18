@@ -10,13 +10,13 @@ interface HeaderProps {
   onMenuToggle: () => void;
 }
 
-export default function Header({ 
-  title, 
-  showMobileTitle = false, 
-  onMenuToggle
+export default function Header({
+  title,
+  showMobileTitle = false,
+  onMenuToggle,
 }: HeaderProps) {
   return (
-    <header className="bg-white border-b-2 border-black px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+    <header className="bg-white border-b-2 border-black px-4 md:px-6 py-3 md:py-4 flex-shrink-0 fixed top-0 left-0 right-0 z-40">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 md:space-x-4">
           <MobileMenuButton onClick={onMenuToggle} />

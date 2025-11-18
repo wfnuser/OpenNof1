@@ -49,7 +49,7 @@ export default function Sidebar({ className = '', onToggle, isOpen: externalIsOp
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 z-30 h-full w-64 transform bg-white border-r-2 border-black font-mono transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 h-full w-64 transform bg-white border-r-2 border-black font-mono transition-transform duration-300 ease-in-out lg:relative lg:self-stretch lg:h-full lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } ${className}`}
       >

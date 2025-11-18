@@ -142,7 +142,7 @@ export default function TradingDashboard() {
         onToggle={() => setSidebarOpen(!sidebarOpen)} 
       />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden pt-[60px] md:pt-[62px]">
         {/* Header */}
         <Header 
           title="OpenNof1"
@@ -158,7 +158,7 @@ export default function TradingDashboard() {
         />
 
         {/* Main Content */}
-      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
         {/* Chart and Stats Section - Always visible */}
         <div className="lg:flex lg:flex-row lg:flex-1 lg:min-h-0">
           {/* Chart Area */}
