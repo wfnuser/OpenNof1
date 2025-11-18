@@ -17,6 +17,7 @@ from config.settings import config
 from utils.logger import logger
 from trading.binance_futures import get_trader
 from trading.position_service import get_position_service
+from services.prompt_service import get_trading_strategy, set_trading_strategy
 
 router = APIRouter()
 
@@ -720,3 +721,111 @@ async def sync_trading_history(full_sync: bool = False):
     except Exception as e:
         logger.error(f"同步交易历史失败: {e}")
         raise HTTPException(status_code=500, detail=f"同步失败: {str(e)}")
+
+
+# Trading Strategy API Models
+class TradingStrategyResponse(BaseModel):
+    strategy: str
+    source: str  # "database", "config", or "default"
+
+class TradingStrategyRequest(BaseModel):
+    strategy: str
+
+class TradingStrategyUpdateResponse(BaseModel):
+    success: bool
+    message: str
+    timestamp: datetime
+
+
+# Trading Strategy Endpoints
+@router.get("/trading/strategy", response_model=TradingStrategyResponse)
+async def get_current_trading_strategy():
+    """获取当前交易策略配置"""
+    try:
+        strategy = await get_trading_strategy()
+        
+        # 检查来源
+        from database.database import get_session_maker
+        from database.models import SystemConfig
+        from sqlalchemy import select
+        
+        source = "default"
+        try:
+            async with get_session_maker()() as session:
+                result = await session.execute(
+                    select(SystemConfig).where(SystemConfig.key == "trading_strategy")
+                )
+                config_row = result.scalar_one_or_none()
+                
+                if config_row and config_row.value.strip():
+                    source = "database"
+                elif hasattr(config.agent, 'trading_strategy') and config.agent.trading_strategy:
+                    source = "config"
+        except Exception:
+            pass
+        
+        return TradingStrategyResponse(
+            strategy=strategy,
+            source=source
+        )
+        
+    except Exception as e:
+        logger.error(f"获取交易策略失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取交易策略失败: {str(e)}")
+
+
+@router.post("/trading/strategy", response_model=TradingStrategyUpdateResponse)
+async def update_trading_strategy(request: TradingStrategyRequest):
+    """更新用户自定义交易策略"""
+    try:
+        if not request.strategy or not request.strategy.strip():
+            raise HTTPException(status_code=400, detail="交易策略内容不能为空")
+        
+        success = await set_trading_strategy(request.strategy.strip())
+        
+        if success:
+            logger.info("用户交易策略更新成功")
+            return TradingStrategyUpdateResponse(
+                success=True,
+                message="交易策略更新成功",
+                timestamp=datetime.now()
+            )
+        else:
+            raise HTTPException(status_code=500, detail="更新交易策略失败")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新交易策略失败: {e}")
+        raise HTTPException(status_code=500, detail=f"更新交易策略失败: {str(e)}")
+
+
+@router.delete("/trading/strategy", response_model=TradingStrategyUpdateResponse)
+async def reset_trading_strategy():
+    """重置交易策略为默认值（删除数据库中的自定义配置）"""
+    try:
+        from database.database import get_session_maker
+        from database.models import SystemConfig
+        from sqlalchemy import select, delete
+        
+        async with get_session_maker()() as session:
+            # 删除数据库中的自定义配置
+            await session.execute(
+                delete(SystemConfig).where(SystemConfig.key == "trading_strategy")
+            )
+            await session.commit()
+        
+        # 清除缓存
+        from services.prompt_service import clear_strategy_cache
+        clear_strategy_cache()
+        
+        logger.info("交易策略已重置为默认值")
+        return TradingStrategyUpdateResponse(
+            success=True,
+            message="交易策略已重置为默认值",
+            timestamp=datetime.now()
+        )
+        
+    except Exception as e:
+        logger.error(f"重置交易策略失败: {e}")
+        raise HTTPException(status_code=500, detail=f"重置交易策略失败: {str(e)}")

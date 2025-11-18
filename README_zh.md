@@ -45,6 +45,10 @@ cd frontend && pnpm run dev
 
 访问 `http://localhost:3000` 查看交易面板。
 
+### 启用前端控制操作
+
+默认情况下，所有高风险操作（启动/停止交易 Bot、重置策略历史、修改策略等）都会在前端被禁止。若要允许在页面上进行这些操作，需要在启动或部署前端之前设置环境变量 `ALLOW_CONTROL_OPERATIONS=true`（例如写入 `.env.local`）。
+
 ## 支持的交易所
 
 **当前仅支持 Binance Futures**

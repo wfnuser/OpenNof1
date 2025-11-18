@@ -1,11 +1,4 @@
 /** @type {import('next').NextConfig} */
-const blockedApiPaths = [
-  '/api/agent/analyze',
-  '/api/agent/start',
-  '/api/agent/stop',
-  '/api/trading/history/reset',
-  '/api/trading/history/sync',
-]
 
 const nextConfig = {
   reactStrictMode: true,
@@ -25,11 +18,9 @@ const nextConfig = {
   },
   async rewrites() {
     const origin = process.env.BACKEND_ORIGIN || 'http://localhost:8000'
+
     return {
-      beforeFiles: blockedApiPaths.map((source) => ({
-        source,
-        destination: '/api/frontend-blocked',
-      })),
+      beforeFiles: [],
       afterFiles: [
         {
           source: '/api/:path*',

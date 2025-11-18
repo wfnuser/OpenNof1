@@ -39,3 +39,8 @@ export function shouldUseProxy(): boolean {
   
   return apiConfig.useProxy;
 }
+
+// Check if control operations (bot start/stop, strategy modification) are allowed
+export function isControlOperationsAllowed(): boolean {
+  return process.env.ALLOW_CONTROL_OPERATIONS === 'true';
+}

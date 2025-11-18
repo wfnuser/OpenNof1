@@ -45,6 +45,10 @@ cd frontend && pnpm run dev
 
 Visit `http://localhost:3000` for the dashboard.
 
+### Enabling Frontend Control Operations
+
+By default, high-risk actions (starting/stopping the trading bot, resetting strategy history, editing strategies, etc.) are blocked in the web UI. To unlock these controls, set the environment variable `ALLOW_CONTROL_OPERATIONS=true` before running or deploying the frontend (e.g., in `.env.local`).
+
 ## Supported Exchanges
 
 **Currently supports Binance Futures only**

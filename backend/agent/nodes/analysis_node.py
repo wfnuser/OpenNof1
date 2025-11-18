@@ -7,12 +7,13 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from agent.state import AgentState, SymbolDecision
 from config.settings import config
+from services.prompt_service import get_trading_strategy
 
 
 class SymbolDecision(BaseModel):
@@ -181,45 +182,44 @@ def analysis_node(tools: List):
             )
             logger.info(f"{analysis_content}")
 
-            # 第二步：使用 structured output 生成结构化决策
-            base_decision_prompt = f"""
-            基于以下信息为每个标的做出交易决策：
+            # 第二步：使用新的分层提示词系统生成结构化决策
             
-            标的: {symbols_list}
+            # 系统提示词（固定结构）
+            system_prompt = f"""基于以下信息为每个标的做出交易决策：
+
+标的: {symbols_list}
+
+当前账户状态:
+{balance_info}
+{positions_info}
+
+技术分析结果:
+{analysis_content}
+
+请为每个标的做出期货交易决策：
+- OPEN_LONG: 开多仓 (看涨时选择)
+- OPEN_SHORT: 开空仓 (看跌时选择) 
+- CLOSE_LONG: 平多仓 (将全部平掉多头持仓)
+- CLOSE_SHORT: 平空仓 (将全部平掉空头持仓)
+- HOLD: 持仓观望 (无明确信号或当前持仓合适)
+
+对于开仓操作(OPEN_LONG/OPEN_SHORT)，请指定：
+1. 期望的仓位价值(美元金额)
+2. 止损价格
+3. 止盈价格
+
+注意：杠杆已配置为{config.exchange.default_leverage}x，无需指定。"""
+
+            # 获取用户交易策略（三层优先级）
+            user_trading_strategy = await get_trading_strategy()
             
-            当前账户状态:
-            {balance_info}
-            {positions_info}
-            
-            技术分析结果:
-            {analysis_content}
-            
-            请为每个标的做出期货交易决策：
-            - OPEN_LONG: 开多仓 (看涨时选择)
-            - OPEN_SHORT: 开空仓 (看跌时选择) 
-            - CLOSE_LONG: 平多仓 (将全部平掉多头持仓)
-            - CLOSE_SHORT: 平空仓 (将全部平掉空头持仓)
-            - HOLD: 持仓观望 (无明确信号或当前持仓合适)
-            
-            对于开仓操作(OPEN_LONG/OPEN_SHORT)，请指定：
-            1. 期望的仓位价值(美元金额) - 单一币种仓位上限为可用余额的 20%
-            2. 止损价格 - 可以用小时级 NATR 计算
-            3. 止盈价格 - 盈亏比 2:1
-            
-            原则:
-            1. 不要随意建仓，除非所有指标都指向一个方向，否则不要轻易下单
-            2. 不要随意主动平仓，因为已经设置了止盈止损了 - 除非有强烈的信号指示趋势已经反转，才需要平仓
-            
-            注意：杠杆已配置为{config.exchange.default_leverage}x，无需指定。
-            """
-            
-            # 根据是否支持原生结构化输出来调整提示词和处理
+            # 根据是否支持原生结构化输出来调整处理
             if supports_native_structured_output():
                 # OpenAI gpt-4o 使用原生结构化输出
-                decision_prompt = base_decision_prompt
-                trading_decision = await structured_llm.ainvoke(
-                    [HumanMessage(content=decision_prompt)]
-                )
+                trading_decision = await structured_llm.ainvoke([
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_trading_strategy)
+                ])
             else:
                 # 其他模型使用JSON格式
                 json_schema = {
@@ -236,20 +236,19 @@ def analysis_node(tools: List):
                     "overall_summary": "string"
                 }
                 
-                decision_prompt = f"""{base_decision_prompt}
+                json_instruction = f"""
+请以JSON格式返回决策，严格按照以下格式：
+
+```json
+{json.dumps(json_schema, indent=2, ensure_ascii=False)}
+```
+
+确保JSON格式正确，所有字符串用双引号包围。"""
                 
-                请以JSON格式返回决策，严格按照以下格式：
-                
-                ```json
-                {json.dumps(json_schema, indent=2, ensure_ascii=False)}
-                ```
-                
-                确保JSON格式正确，所有字符串用双引号包围。
-                """
-                
-                response = await structured_llm.ainvoke(
-                    [HumanMessage(content=decision_prompt)]
-                )
+                response = await structured_llm.ainvoke([
+                    SystemMessage(content=system_prompt + json_instruction),
+                    HumanMessage(content=user_trading_strategy)
+                ])
                 
                 # 解析JSON响应
                 trading_decision = parse_json_response(response.content)

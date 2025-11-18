@@ -47,7 +47,7 @@ class AgentConfig(BaseModel):
     decision_interval: int
     symbols: list[str]
     timeframes: list[str]
-    system_prompt: str
+    trading_strategy: Optional[str] = None  # User-configurable trading strategy
 
 
 class ExchangeConfig(BaseModel):

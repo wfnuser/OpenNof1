@@ -24,10 +24,18 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        `API request failed: ${response.status} ${response.statusText}`,
-        response.status
-      );
+      let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+
+      try {
+        const data = await response.json();
+        if (data && typeof data === 'object' && typeof (data as any).message === 'string') {
+          errorMessage = (data as any).message;
+        }
+      } catch (jsonError) {
+        // Non-JSON response, keep default message
+      }
+
+      throw new ApiError(errorMessage, response.status);
     }
 
     return await response.json();
@@ -94,6 +102,24 @@ interface BackendTradeStats {
   maxDrawdown: number;
   sharpeRatio: number;
   activePositions: number;
+}
+
+// Agent control/monitoring response types
+export interface AgentStatus {
+  is_running: boolean;
+  decision_interval: number;
+  symbols: string[];
+  timeframes: string[];
+  model_name: string;
+  last_run?: string | null;
+  next_run?: string | null;
+  uptime_seconds?: number | null;
+}
+
+export interface AgentControlResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
 }
 
 // Data transformation utilities
@@ -237,8 +263,45 @@ export async function fetchSystemHealth() {
   return apiRequest('/health');
 }
 
-export async function fetchAgentStatus() {
-  return apiRequest('/agent/status');
+export async function fetchAgentStatus(): Promise<AgentStatus> {
+  return apiRequest<AgentStatus>('/agent/status');
+}
+
+export async function startAgent(): Promise<AgentControlResponse> {
+  return apiRequest<AgentControlResponse>('/agent/start', { method: 'POST' });
+}
+
+export async function stopAgent(): Promise<AgentControlResponse> {
+  return apiRequest<AgentControlResponse>('/agent/stop', { method: 'POST' });
+}
+
+// Trading Strategy API types
+interface TradingStrategyResponse {
+  strategy: string;
+}
+
+interface TradingStrategyUpdateResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+}
+
+// Trading Strategy API functions
+export async function fetchTradingStrategy(): Promise<TradingStrategyResponse> {
+  return apiRequest<TradingStrategyResponse>('/trading/strategy');
+}
+
+export async function updateTradingStrategy(strategy: string): Promise<TradingStrategyUpdateResponse> {
+  return apiRequest<TradingStrategyUpdateResponse>('/trading/strategy', {
+    method: 'POST',
+    body: JSON.stringify({ strategy }),
+  });
+}
+
+export async function resetTradingStrategy(): Promise<TradingStrategyUpdateResponse> {
+  return apiRequest<TradingStrategyUpdateResponse>('/trading/strategy', {
+    method: 'DELETE',
+  });
 }
 
 // Utility function to create real-time data updates
