@@ -2,7 +2,7 @@
 Trading Execution Node - Execute real futures trading decisions
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 
 from agent.state import AgentState
@@ -11,6 +11,10 @@ from trading.position_service import get_position_service
 from config.settings import config
 
 logger = logging.getLogger("AlphaTransformer")
+
+
+def _resolve_default_leverage(exchange_name: Optional[str]) -> int:
+    return config.get_default_leverage(exchange_name)
 
 
 async def trading_execution_node(state: AgentState) -> AgentState:
@@ -135,8 +139,8 @@ async def _execute_futures_trading(symbol: str, decision: Dict[str, Any], trader
         current_position = None
         for pos in positions:
             # 标准化符号比较：SOLUSDT vs SOL/USDT:USDT
-            pos_symbol_normalized = pos.symbol.replace('/', '').replace(':USDT', '')
-            symbol_normalized = symbol.replace('/', '').replace(':USDT', '')
+            pos_symbol_normalized = pos.symbol.replace('/', '').replace(':USDT', '').replace(':USDC', '')
+            symbol_normalized = symbol.replace('/', '').replace(':USDT', '').replace(':USDC', '')
             
             if pos_symbol_normalized == symbol_normalized:
                 current_position = pos
@@ -171,7 +175,7 @@ async def _execute_futures_trading(symbol: str, decision: Dict[str, Any], trader
 async def _execute_open_long(symbol: str, decision: Dict, trader, current_price: float, balance) -> Dict[str, Any]:
     """执行开多仓"""
     position_size_usd = decision.get("position_size_usd", 0)
-    leverage = config.exchange.default_leverage  # 从配置获取默认杠杆
+    leverage = _resolve_default_leverage(trader.get_exchange_name())
     
     # 根据 AI 决策的仓位价值计算交易数量
     quantity = position_size_usd / current_price
@@ -199,7 +203,7 @@ async def _execute_open_long(symbol: str, decision: Dict, trader, current_price:
 async def _execute_open_short(symbol: str, decision: Dict, trader, current_price: float, balance) -> Dict[str, Any]:
     """执行开空仓"""
     position_size_usd = decision.get("position_size_usd", 0)
-    leverage = config.exchange.default_leverage  # 从配置获取默认杠杆
+    leverage = _resolve_default_leverage(trader.get_exchange_name())
     
     # 根据 AI 决策的仓位价值计算交易数量
     quantity = position_size_usd / current_price
@@ -260,5 +264,3 @@ async def _execute_close_short(symbol: str, decision: Dict, trader, current_posi
         "quantity": current_position.size,
         "message": f"平空仓成功: {current_position.size}"
     }
-
-

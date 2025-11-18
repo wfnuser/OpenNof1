@@ -27,28 +27,41 @@ agent:
     1. 不要随意建仓，除非所有指标都指向一个方向，否则不要轻易下单
     2. 不要随意主动平仓，因为已经设置了止盈止损了 - 除非有强烈的信号指示趋势已经反转，才需要平仓
 
-# Exchange Configuration
+# Exchange Configuration (used for市场数据 WebSocket/REST)
 exchange:
   name: "binance_futures"
-  api_key: "${BINANCE_API_KEY}"
-  api_secret: "${BINANCE_API_SECRET}"
-  testnet: false  # Use testnet for development
-  
-  # WebSocket and REST API endpoints
-  websocket_url: "wss://fstream.binance.com/stream"  # Production
-  rest_api_url: "https://fapi.binance.com"  # Production
-  
-  # Testnet endpoints (used when testnet: true)
+  testnet: false
+  websocket_url: "wss://fstream.binance.com/stream"
+  rest_api_url: "https://fapi.binance.com"
   testnet_websocket_url: "wss://stream.binancefuture.com/stream"
   testnet_rest_api_url: "https://testnet.binancefuture.com"
-  
-  # Futures trading settings (for CCXT)
-  default_leverage: 1
-  margin_mode: "cross"  # cross or isolated
-  enable_rate_limit: true
-  timeout: 10000  # milliseconds
-  retries: 3
-  sandbox: false  # CCXT sandbox mode (alternative to testnet)
+
+# Multi-exchange trading configuration
+exchanges:
+  binance_futures:
+    ccxt_id: "binance"
+    auth_type: "api_key"
+    default_leverage: 1
+    margin_mode: "cross"
+    enable_rate_limit: true
+    timeout: 10000
+    retries: 3
+    credentials:
+      apiKey: "${BINANCE_API_KEY}"
+      secret: "${BINANCE_API_SECRET}"
+    options:
+      defaultType: "future"
+  hyperliquid:
+    ccxt_id: "hyperliquid"
+    auth_type: "wallet_key"
+    default_leverage: 1
+    margin_mode: "cross"
+    credentials:
+      user: "${HL_USER_ADDR}"
+      wallet_address: "${HL_WALLET_ADDR}"
+      private_key: "${HL_PRIVATE_KEY}"
+    options:
+      slippage: 0.02
   
 # Risk Management (these can be overridden in user prompts)
 default_risk:
