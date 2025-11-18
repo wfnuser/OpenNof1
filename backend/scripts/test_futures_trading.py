@@ -16,7 +16,7 @@ env_file = backend_dir / ".env"
 if env_file.exists():
     load_dotenv(env_file)
 
-from trading import get_trader
+from trading.factory import get_exchange_trader, get_trader
 
 
 async def clean_existing_positions(trader):
@@ -61,8 +61,23 @@ async def test_trading_interface():
     """测试期货交易接口"""
 
     try:
-        trader = get_trader()
-        print(f"✅ 交易所: {trader.get_exchange_name()}")
+        # 测试新的工厂模式
+        print("🔧 测试工厂模式...")
+        
+        # 方式1: 默认（向后兼容）
+        trader1 = get_trader()
+        print(f"✅ 默认交易器: {trader1.get_exchange_name()}")
+        
+        # 方式2: 通过工厂明确指定币安
+        trader2 = get_exchange_trader("binance")
+        print(f"✅ 币安交易器: {trader2.get_exchange_name()}")
+        
+        # 方式3: 通过工厂默认（无参数）
+        trader3 = get_exchange_trader()
+        print(f"✅ 工厂默认: {trader3.get_exchange_name()}")
+        
+        # 使用默认交易器进行测试
+        trader = trader2
         print(f"✅ 测试模式: {trader.exchange.options.get('sandbox', False)}")
 
         # 测试获取账户余额

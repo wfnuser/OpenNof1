@@ -1,0 +1,469 @@
+openapi: 3.0.3
+info:
+  title: AlphaTransformer Multi-Exchange API
+  version: 1.0.0
+  description: |
+    Enhanced trading API supporting multiple exchanges through unified interface.
+    Maintains backward compatibility with existing single-exchange operations.
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /trading/exchanges:
+    get:
+      summary: List available exchanges and their status
+      description: Get list of configured exchanges with connection status and capabilities
+      responses:
+        '200':
+          description: List of exchanges with status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exchanges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExchangeStatus'
+                  primary_exchange:
+                    type: string
+                    description: Default exchange for operations
+
+  /trading/exchanges/{exchange_name}/balance:
+    get:
+      summary: Get account balance for specific exchange
+      parameters:
+        - name: exchange_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "binance_futures"
+      responses:
+        '200':
+          description: Account balance information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        '404':
+          description: Exchange not found or not configured
+
+  /trading/exchanges/{exchange_name}/positions:
+    get:
+      summary: Get active positions for specific exchange
+      parameters:
+        - name: exchange_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "binance_futures"
+      responses:
+        '200':
+          description: List of active positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+
+  /trading/exchanges/{exchange_name}/orders:
+    post:
+      summary: Execute trading order on specific exchange
+      parameters:
+        - name: exchange_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "binance_futures"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '200':
+          description: Order executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResult'
+        '400':
+          description: Invalid order parameters
+        '422':
+          description: Order validation failed
+
+  /trading/exchanges/{exchange_name}/symbols:
+    get:
+      summary: Get tradable symbols for exchange
+      parameters:
+        - name: exchange_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of tradable symbols
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbols:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SymbolInfo'
+
+  /trading/exchanges/{exchange_name}/symbols/{symbol}/price:
+    get:
+      summary: Get current market price for symbol
+      parameters:
+        - name: exchange_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "BTC/USDT"
+      responses:
+        '200':
+          description: Current market price
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol:
+                    type: string
+                  price:
+                    type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Backward compatible endpoints (legacy)
+  /trading/balance:
+    get:
+      summary: Get balance from primary exchange (legacy)
+      description: Backward compatible endpoint using primary exchange
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+
+  /trading/positions:
+    get:
+      summary: Get positions from primary exchange (legacy)
+      description: Backward compatible endpoint using primary exchange
+      responses:
+        '200':
+          description: Active positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+
+components:
+  schemas:
+    ExchangeStatus:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "binance_futures"
+        display_name:
+          type: string
+          example: "Binance Futures"
+        status:
+          type: string
+          enum: ["connected", "disconnected", "error"]
+        is_primary:
+          type: boolean
+        supported_symbols:
+          type: array
+          items:
+            type: string
+        rate_limits:
+          $ref: '#/components/schemas/RateLimit'
+        last_error:
+          type: string
+          nullable: true
+        connection_time:
+          type: string
+          format: date-time
+
+    Balance:
+      type: object
+      properties:
+        total_balance:
+          type: number
+          format: float
+          description: Total account balance
+        available_balance:
+          type: number
+          format: float
+          description: Available for trading
+        margin_balance:
+          type: number
+          format: float
+          description: Balance including unrealized PnL
+        unrealized_pnl:
+          type: number
+          format: float
+          description: Total unrealized profit/loss
+        margin_used:
+          type: number
+          format: float
+          description: Currently used margin
+        currency:
+          type: string
+          example: "USDT"
+        exchange:
+          type: string
+          example: "binance_futures"
+        account_type:
+          type: string
+          example: "futures"
+        can_trade:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+    Position:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "BTC/USDT"
+        side:
+          type: string
+          enum: ["LONG", "SHORT"]
+        size:
+          type: number
+          format: float
+        entry_price:
+          type: number
+          format: float
+        mark_price:
+          type: number
+          format: float
+        unrealized_pnl:
+          type: number
+          format: float
+        percentage_pnl:
+          type: number
+          format: float
+        leverage:
+          type: number
+          format: float
+        margin:
+          type: number
+          format: float
+        exchange:
+          type: string
+          example: "binance_futures"
+        position_id:
+          type: string
+          nullable: true
+        liquidation_price:
+          type: number
+          format: float
+          nullable: true
+        margin_type:
+          type: string
+          enum: ["cross", "isolated"]
+        timestamp:
+          type: string
+          format: date-time
+
+    OrderRequest:
+      type: object
+      required:
+        - symbol
+        - side
+        - order_type
+        - quantity
+      properties:
+        symbol:
+          type: string
+          example: "BTC/USDT"
+        side:
+          type: string
+          enum: ["buy", "sell", "open_long", "open_short", "close_long", "close_short"]
+        order_type:
+          type: string
+          enum: ["market", "limit", "stop", "stop_limit"]
+        quantity:
+          type: number
+          format: float
+          minimum: 0
+        price:
+          type: number
+          format: float
+          nullable: true
+          description: Required for limit orders
+        stop_price:
+          type: number
+          format: float
+          nullable: true
+          description: Trigger price for stop orders
+        leverage:
+          type: integer
+          minimum: 1
+          maximum: 125
+          default: 1
+        stop_loss_price:
+          type: number
+          format: float
+          nullable: true
+        take_profit_price:
+          type: number
+          format: float
+          nullable: true
+        time_in_force:
+          type: string
+          enum: ["GTC", "IOC", "FOK"]
+          default: "GTC"
+        client_order_id:
+          type: string
+          nullable: true
+
+    OrderResult:
+      type: object
+      properties:
+        symbol:
+          type: string
+        order_id:
+          type: string
+        client_order_id:
+          type: string
+        side:
+          type: string
+          enum: ["BUY", "SELL"]
+        order_type:
+          type: string
+          example: "MARKET"
+        quantity:
+          type: number
+          format: float
+        price:
+          type: number
+          format: float
+          nullable: true
+        executed_quantity:
+          type: number
+          format: float
+        executed_price:
+          type: number
+          format: float
+          nullable: true
+        status:
+          type: string
+          enum: ["FILLED", "PARTIALLY_FILLED", "CANCELLED", "FAILED", "PENDING"]
+        fees:
+          type: number
+          format: float
+        exchange:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    SymbolInfo:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "BTC/USDT"
+        internal_symbol:
+          type: string
+          example: "BTC/USDT"
+        exchange_symbol:
+          type: string
+          example: "BTCUSDT"
+        base_asset:
+          type: string
+          example: "BTC"
+        quote_asset:
+          type: string
+          example: "USDT"
+        active:
+          type: boolean
+        symbol_type:
+          type: string
+          example: "futures"
+        min_order_amount:
+          type: number
+          format: float
+        max_leverage:
+          type: integer
+        price_precision:
+          type: integer
+        quantity_precision:
+          type: integer
+        trading_fees:
+          type: object
+          properties:
+            maker:
+              type: number
+              format: float
+            taker:
+              type: number
+              format: float
+
+    RateLimit:
+      type: object
+      properties:
+        requests_per_minute:
+          type: integer
+        orders_per_minute:
+          type: integer
+        websocket_connections:
+          type: integer
+        current_usage:
+          type: object
+          properties:
+            requests:
+              type: integer
+            orders:
+              type: integer
+            websockets:
+              type: integer
+
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+    ValidationError:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: object
