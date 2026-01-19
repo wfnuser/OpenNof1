@@ -25,13 +25,14 @@ function rewriteToBlocked(request: NextRequest) {
 
 export function middleware(request: NextRequest) {
   const pathname = normalizePath(request.nextUrl.pathname)
-  const isControlAllowed = process.env.ALLOW_CONTROL_OPERATIONS === 'true'
 
   if (ALWAYS_BLOCKED_PATHS.includes(pathname)) {
     return rewriteToBlocked(request)
   }
 
-  if (!isControlAllowed) {
+  const envControlDisabled = process.env.ALLOW_CONTROL_OPERATIONS === 'false'
+
+  if (envControlDisabled) {
     if (CONTROLLED_PATHS.includes(pathname)) {
       return rewriteToBlocked(request)
     }

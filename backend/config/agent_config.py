@@ -123,6 +123,7 @@ class SystemConfig(BaseModel):
     port: int = 8000
     log_level: str = "INFO"
     max_concurrent_decisions: int = 1
+    allow_control_operations: bool = False  # 是否允许前端控制操作
 
 
 class AppConfig(BaseModel):

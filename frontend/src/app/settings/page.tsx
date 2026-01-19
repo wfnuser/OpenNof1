@@ -14,6 +14,7 @@ import type { AgentStatus } from "@/lib/api";
 import Toast from "@/components/Toast";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import { isControlOperationsAllowed } from "@/lib/config";
 
 export default function SettingsPage() {
   const [strategy, setStrategy] = useState("");
@@ -25,6 +26,7 @@ export default function SettingsPage() {
     text: string;
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [controlAllowed, setControlAllowed] = useState(false);
 
   // Bot status
   const [botStatus, setBotStatus] = useState<AgentStatus>({
@@ -43,6 +45,7 @@ export default function SettingsPage() {
   useEffect(() => {
     loadStrategy();
     loadBotStatus();
+    isControlOperationsAllowed().then(setControlAllowed);
   }, []);
 
   const loadStrategy = async () => {
@@ -82,9 +85,8 @@ export default function SettingsPage() {
 
       await loadBotStatus(); // Reload status
     } catch (error) {
-      const fallbackMessage = `Failed to ${
-        botStatus.is_running ? "stop" : "start"
-      } trading bot`;
+      const fallbackMessage = `Failed to ${botStatus.is_running ? "stop" : "start"
+        } trading bot`;
       setMessage({
         type: "error",
         text: error instanceof Error ? error.message : fallbackMessage,
@@ -204,11 +206,10 @@ export default function SettingsPage() {
                       <span className="font-medium">
                         Trading Bot Status:
                         <span
-                          className={`ml-2 font-bold ${
-                            botStatus.is_running
+                          className={`ml-2 font-bold ${botStatus.is_running
                               ? "text-green-600"
                               : "text-red-600"
-                          }`}
+                            }`}
                         >
                           {botStatus.is_running ? "RUNNING" : "STOPPED"}
                         </span>
@@ -218,12 +219,11 @@ export default function SettingsPage() {
 
                   <button
                     onClick={handleBotToggle}
-                    disabled={botLoading}
-                    className={`flex items-center justify-center space-x-2 px-4 py-2 font-bold uppercase tracking-wide text-sm border-2 border-black transition-colors duration-200 ${
-                      botStatus.is_running
+                    disabled={!controlAllowed || botLoading}
+                    className={`flex items-center justify-center space-x-2 px-4 py-2 font-bold uppercase tracking-wide text-sm border-2 border-black transition-colors duration-200 ${botStatus.is_running
                         ? "bg-red-600 hover:bg-red-700 text-white"
                         : "bg-blue-600 hover:bg-blue-700 text-white"
-                    } disabled:bg-gray-400 disabled:cursor-not-allowed disabled:text-gray-200`}
+                      } disabled:bg-gray-400 disabled:cursor-not-allowed disabled:text-gray-200`}
                   >
                     {botLoading ? (
                       <>

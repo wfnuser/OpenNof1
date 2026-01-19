@@ -19,6 +19,8 @@ from trading.binance_futures import get_trader
 from trading.position_service import get_position_service
 from services.prompt_service import get_trading_strategy, set_trading_strategy
 
+from functools import wraps
+from fastapi import HTTPException, status
 router = APIRouter()
 
 
@@ -47,6 +49,19 @@ class CacheInfoResponse(BaseModel):
     total_symbols: int
     max_klines_per_timeframe: int
     symbol_details: Dict[str, Dict[str, Any]]
+
+
+def check_control_permission(func):
+    """装饰器：检查控制操作权限"""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if not config.system.allow_control_operations:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Control operations are disabled for security reasons. Set allow_control_operations=true in agent.yaml to enable."
+            )
+        return await func(*args, **kwargs)
+    return wrapper
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -182,7 +197,8 @@ async def get_system_config():
         "system": {
             "host": config.system.host,
             "port": config.system.port,
-            "log_level": config.system.log_level
+            "log_level": config.system.log_level,
+            "allow_control_operations": config.system.allow_control_operations
         },
         "risk": {
             "max_position_size_percent": config.default_risk.max_position_size_percent,
@@ -370,6 +386,7 @@ class AgentStatusResponse(BaseModel):
 
 # Agent control endpoints
 @router.post("/agent/start", response_model=AgentControlResponse)
+@check_control_permission
 async def start_agent():
     """启动 AI Agent 调度器"""
     try:
@@ -405,6 +422,7 @@ async def start_agent():
 
 
 @router.post("/agent/stop", response_model=AgentControlResponse)
+@check_control_permission
 async def stop_agent():
     """停止 AI Agent 调度器"""
     try:
@@ -670,6 +688,7 @@ async def get_trade_stats(days: int = 30):
 
 
 @router.post("/trading/history/reset")
+@check_control_permission
 async def reset_trading_history(init_time: Optional[str] = None):
     """重置交易历史系统（清空所有数据并重新初始化）"""
     try:
@@ -695,6 +714,7 @@ async def reset_trading_history(init_time: Optional[str] = None):
 
 
 @router.post("/trading/history/sync")
+@check_control_permission
 async def sync_trading_history(full_sync: bool = False):
     """手动同步交易历史"""
     try:
@@ -775,6 +795,7 @@ async def get_current_trading_strategy():
 
 
 @router.post("/trading/strategy", response_model=TradingStrategyUpdateResponse)
+@check_control_permission
 async def update_trading_strategy(request: TradingStrategyRequest):
     """更新用户自定义交易策略"""
     try:
@@ -801,6 +822,7 @@ async def update_trading_strategy(request: TradingStrategyRequest):
 
 
 @router.delete("/trading/strategy", response_model=TradingStrategyUpdateResponse)
+@check_control_permission
 async def reset_trading_strategy():
     """重置交易策略为默认值（删除数据库中的自定义配置）"""
     try:

@@ -5,7 +5,7 @@ agent:
   model_name: "deepseek-chat"  # Model name (gpt-4o, claude-3-5-sonnet, deepseek-chat, qwen-plus, etc.)
   base_url: "https://api.deepseek.com/v1"  # API base URL (null for OpenAI, or custom like "https://api.deepseek.com/v1")
   api_key: "${OPENAI_API_KEY}"  # API key environment variable
-  
+
   # Trading Configuration
   decision_interval: 180  # seconds between decisions
   symbols:
@@ -17,7 +17,7 @@ agent:
     - "3m"
     - "1h"
     - "4h"
-  
+
   # 用户可配置的交易策略（会被数据库覆盖）
   trading_strategy: |
     1. 单一币种仓位上限为可用余额的 20%
@@ -33,15 +33,15 @@ exchange:
   api_key: "${BINANCE_API_KEY}"
   api_secret: "${BINANCE_API_SECRET}"
   testnet: false  # Use testnet for development
-  
+
   # WebSocket and REST API endpoints
   websocket_url: "wss://fstream.binance.com/stream"  # Production
   rest_api_url: "https://fapi.binance.com"  # Production
-  
+
   # Testnet endpoints (used when testnet: true)
   testnet_websocket_url: "wss://stream.binancefuture.com/stream"
   testnet_rest_api_url: "https://testnet.binancefuture.com"
-  
+
   # Futures trading settings (for CCXT)
   default_leverage: 1
   margin_mode: "cross"  # cross or isolated
@@ -49,14 +49,14 @@ exchange:
   timeout: 10000  # milliseconds
   retries: 3
   sandbox: false  # CCXT sandbox mode (alternative to testnet)
-  
+
 # Risk Management (these can be overridden in user prompts)
 default_risk:
   max_position_size_percent: 0.1  # 10% of account per position
   max_daily_loss_percent: 0.05    # 5% max daily loss
                 # Maximum leverage
   stop_loss_percent: 0.02         # 2% stop loss
-  
+
 # Account Snapshot Configuration
 account_snapshot:
   enabled: true
@@ -69,9 +69,10 @@ logging:
   save_decisions: true
   save_executions: true
   save_snapshots: true
-  
-# System Configuration  
+
+# System Configuration
 system:
   host: "0.0.0.0"
   port: 8000
   max_concurrent_decisions: 1  # Prevent overlapping decisions
+  allow_control_operations: true # 是否允许前端控制操作（启动/停止 agent、修改策略等）
