@@ -1,0 +1,279 @@
+# AlphaTransformer Multi-Exchange Configuration Schema
+# This file defines the complete configuration structure for multi-exchange support
+
+# Global trading configuration (applies to all exchanges)
+trading:
+  # Risk management settings
+  risk_management:
+    max_position_size_percent: 10.0    # Maximum position size as % of total balance
+    max_daily_loss_percent: 5.0        # Stop trading if daily loss exceeds %
+    stop_loss_percent: 2.0             # Default stop loss %
+    max_open_positions: 5              # Maximum concurrent positions
+    
+  # Default trading parameters
+  defaults:
+    leverage: 5                        # Default leverage for new positions
+    margin_type: "cross"               # "cross" or "isolated"
+    order_timeout: 30                  # Order timeout in seconds
+
+  # Symbol mapping (internal format to exchange-specific)
+  symbol_mapping:
+    "BTC/USDT":
+      internal: "BTC/USDT"
+      binance_futures: "BTCUSDT"
+      hyperliquid: "BTC"
+      okx: "BTC-USDT-SWAP"
+      
+    "ETH/USDT":
+      internal: "ETH/USDT"  
+      binance_futures: "ETHUSDT"
+      hyperliquid: "ETH"
+      okx: "ETH-USDT-SWAP"
+      
+    "SOL/USDT":
+      internal: "SOL/USDT"
+      binance_futures: "SOLUSDT" 
+      hyperliquid: "SOL"
+      okx: "SOL-USDT-SWAP"
+
+# Exchange-specific configurations
+exchanges:
+  # Primary exchange (used for legacy compatibility)
+  primary: "binance_futures"
+  
+  # Individual exchange settings
+  binance_futures:
+    # Basic configuration
+    enabled: true
+    display_name: "Binance Futures"
+    exchange_type: "ccxt"              # "ccxt" or "native"
+    ccxt_id: "binance"                 # CCXT exchange identifier
+    
+    # Authentication configuration
+    auth_type: "api_key"               # "api_key" or "rsa_key"
+    credentials:
+      api_key: "${BINANCE_API_KEY}"
+      secret: "${BINANCE_SECRET}"
+      
+    # Network configuration  
+    testnet: true                      # Use testnet/sandbox
+    endpoints:
+      api: "https://testnet.binancefuture.com"
+      websocket: "wss://stream.binancefuture.com"
+      
+    # Rate limiting (requests per minute)
+    rate_limits:
+      requests_per_minute: 1200
+      orders_per_minute: 50
+      websocket_connections: 5
+      burst_allowance: 100             # Temporary burst capacity
+      cooldown_period: 60              # Cooldown after hitting limits
+      
+    # Trading parameters
+    trading_params:
+      # Leverage limits by symbol
+      max_leverage:
+        default: 20
+        "BTC/USDT": 50
+        "ETH/USDT": 25
+        
+      # Minimum order amounts (in quote currency)
+      min_order_amounts:
+        default: 5.0
+        "BTC/USDT": 10.0
+        "ETH/USDT": 10.0
+        
+      # Supported order types
+      supported_order_types:
+        - "market"
+        - "limit"
+        - "stop"
+        - "stop_limit"
+        - "take_profit"
+        - "take_profit_limit"
+        
+      # Trading fees (as decimal: 0.0004 = 0.04%)
+      trading_fees:
+        maker: 0.0002                  # Maker fee
+        taker: 0.0004                  # Taker fee
+        
+    # Position management
+    position_config:
+      margin_type: "cross"             # Default margin type
+      auto_add_margin: false           # Automatically add margin when needed
+      reduce_only: false               # Default reduce-only setting
+
+  hyperliquid:
+    # Basic configuration
+    enabled: true
+    display_name: "Hyperliquid"
+    exchange_type: "ccxt"
+    ccxt_id: "hyperliquid"
+    
+    # Authentication (Ethereum wallet pattern)
+    auth_type: "wallet_key"
+    credentials:
+      wallet_address: "${HL_WALLET_ADDR}"     # Main wallet address
+      private_key: "${HL_PRIVATE_KEY}"        # API wallet private key
+      
+    # Network configuration (mainnet only)
+    testnet: false                     # Hyperliquid has no testnet
+    endpoints:
+      api: "https://api.hyperliquid.xyz"
+      websocket: "wss://api.hyperliquid.xyz"
+      
+    # Rate limiting (more conservative)
+    rate_limits:
+      requests_per_minute: 600
+      orders_per_minute: 20
+      websocket_connections: 3
+      burst_allowance: 50
+      cooldown_period: 30
+      
+    # Trading parameters
+    trading_params:
+      # Leverage limits (Hyperliquid specific)
+      max_leverage:
+        default: 50
+        "BTC/USDT": 50
+        "ETH/USDT": 50
+        "SOL/USDT": 20
+        
+      # Minimum order amounts  
+      min_order_amounts:
+        default: 1.0
+        "BTC/USDT": 1.0
+        "ETH/USDT": 1.0
+        
+      # Supported order types (Hyperliquid specific)
+      supported_order_types:
+        - "market"                     # IOC limit orders
+        - "limit"                      # GTC limit orders  
+        - "stop"                       # Stop market orders
+        - "stop_limit"                 # Stop limit orders
+        
+      # Trading fees (maker rebates on Hyperliquid)
+      trading_fees:
+        maker: -0.00005               # Maker rebate (negative = rebate)
+        taker: 0.00025                # Taker fee
+        
+    # Position management (Hyperliquid specific)
+    position_config:
+      margin_type: "cross"             # Hyperliquid uses cross margin
+      auto_add_margin: true            # Automatically manage margin
+      reduce_only: false
+
+# Environment-specific overrides
+environments:
+  development:
+    # Override settings for development
+    exchanges:
+      binance_futures:
+        testnet: true
+        rate_limits:
+          requests_per_minute: 300     # Lower limits for development
+      hyperliquid:
+        enabled: false                 # Disable Hyperliquid in dev
+        
+  staging:
+    # Staging environment settings  
+    exchanges:
+      binance_futures:
+        testnet: true
+      hyperliquid:
+        enabled: true
+        
+  production:
+    # Production environment settings
+    exchanges:
+      binance_futures:
+        testnet: false                 # Use real Binance
+        rate_limits:
+          requests_per_minute: 1200    # Full rate limits
+      hyperliquid:
+        enabled: true                  # Enable Hyperliquid
+
+# Security configuration (separate file recommended)
+security:
+  # Credential encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_source: "environment"          # "environment", "vault", "keyring"
+    
+  # Credential validation
+  validation:
+    test_connection: true              # Test connections on startup
+    validate_permissions: true         # Validate API permissions
+    
+  # Audit logging
+  audit:
+    enabled: true
+    log_level: "INFO"
+    log_file: "logs/exchange_audit.log"
+    include_credentials: false         # Never log credentials
+    
+  # Backup and rotation
+  backup:
+    enabled: true
+    backup_interval: "24h"
+    retention_days: 30
+    
+  rotation:
+    enabled: false                     # Manual rotation recommended
+    rotation_interval: "30d"
+    advance_notice: "7d"
+
+# Monitoring and alerting
+monitoring:
+  # Health checks
+  health_checks:
+    enabled: true
+    interval: "5m"                     # Check every 5 minutes
+    timeout: "30s"                     # Health check timeout
+    
+  # Performance monitoring  
+  performance:
+    enabled: true
+    track_latency: true
+    track_success_rate: true
+    alert_threshold_ms: 2000           # Alert if operations > 2s
+    
+  # Rate limit monitoring
+  rate_limits:
+    enabled: true
+    warning_threshold: 80              # Warn at 80% of limit
+    alert_threshold: 95                # Alert at 95% of limit
+    
+  # Balance monitoring
+  balance_alerts:
+    enabled: true
+    low_balance_threshold: 1000        # Alert if balance < $1000
+    balance_change_threshold: 10       # Alert if balance changes > 10%
+
+# Validation rules and constraints
+validation:
+  # Symbol validation
+  symbols:
+    format: "^[A-Z]{3,}/[A-Z]{3,}$"   # Format: BASE/QUOTE
+    required_fields: ["base_asset", "quote_asset"]
+    
+  # Order validation
+  orders:
+    min_quantity: 0.000001
+    max_quantity: 1000000
+    min_price: 0.000001
+    max_price: 1000000
+    
+  # Leverage validation
+  leverage:
+    min: 1
+    max: 125                           # System-wide maximum
+    
+  # Configuration validation
+  config:
+    required_exchanges: ["primary"]
+    required_auth_fields:
+      api_key: ["api_key", "secret"]
+      rsa_key: ["api_key", "private_key"] 
+      wallet_key: ["wallet_address", "private_key"]

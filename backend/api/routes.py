@@ -196,18 +196,18 @@ async def get_system_config():
 async def validate_config():
     """Validate system configuration"""
     missing_vars = config.validate_required_env_vars()
+    exchange_configured = False
+    for entry in config.exchanges.values():
+        if entry.credentials and all(not str(value).startswith('${') for value in entry.credentials.values()):
+            exchange_configured = True
+            break
     
     return {
         "valid": len(missing_vars) == 0,
         "missing_env_vars": missing_vars,
         "testnet_mode": config.is_testnet_mode(),
         "agent_configured": bool(config.agent.api_key and not config.agent.api_key.startswith('${')),
-        "exchange_configured": bool(
-            config.exchange.api_key and 
-            config.exchange.api_secret and 
-            not config.exchange.api_key.startswith('${') and
-            not config.exchange.api_secret.startswith('${')
-        )
+        "exchange_configured": exchange_configured
     }
 
 

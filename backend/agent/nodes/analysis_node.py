@@ -208,7 +208,7 @@ def analysis_node(tools: List):
 2. 止损价格
 3. 止盈价格
 
-注意：杠杆已配置为{config.exchange.default_leverage}x，无需指定。"""
+注意：杠杆已配置为{config.get_default_leverage()}x，无需指定。"""
 
             # 获取用户交易策略（三层优先级）
             user_trading_strategy = await get_trading_strategy()

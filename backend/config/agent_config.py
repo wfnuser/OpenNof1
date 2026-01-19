@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 def substitute_env_vars(text: str) -> str:
@@ -19,6 +19,13 @@ def substitute_env_vars(text: str) -> str:
         return os.getenv(var_name, match.group(0))  # 如果找不到环境变量，保持原样
 
     return pattern.sub(replace_var, text)
+
+
+def extract_env_var_name(value: Optional[str]) -> Optional[str]:
+    """当配置值仍为 ${VAR} 格式时提取变量名"""
+    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+        return value[2:-1]
+    return None
 
 
 def load_config_with_env_vars(config_path: Path) -> Dict[str, Any]:
@@ -52,21 +59,11 @@ class AgentConfig(BaseModel):
 
 class ExchangeConfig(BaseModel):
     name: str
-    api_key: str
-    api_secret: str
     testnet: bool = True
     websocket_url: str
     rest_api_url: str
     testnet_websocket_url: str
     testnet_rest_api_url: str
-
-    # Futures trading settings (for CCXT)
-    default_leverage: int = 1
-    margin_mode: str = "cross"  # cross or isolated
-    enable_rate_limit: bool = True
-    timeout: int = 10000  # milliseconds
-    retries: int = 3
-    sandbox: bool = False  # CCXT sandbox mode
 
     def get_websocket_url(self) -> str:
         """获取当前环境对应的WebSocket URL"""
@@ -76,28 +73,33 @@ class ExchangeConfig(BaseModel):
         """获取当前环境对应的REST API URL"""
         return self.testnet_rest_api_url if self.testnet else self.rest_api_url
 
-    def get_ccxt_config(self) -> Dict[str, Any]:
-        """获取CCXT交易所配置（用于期货交易）"""
+class ExchangeEntryConfig(BaseModel):
+    """多交易所配置项"""
+
+    ccxt_id: str
+    auth_type: str = "api_key"
+    credentials: Dict[str, str] = Field(default_factory=dict)
+    testnet: bool = False
+    sandbox: bool = False
+    default_leverage: int = 1
+    margin_mode: str = "cross"
+    enable_rate_limit: bool = True
+    timeout: int = 10000
+    retries: int = 3
+    options: Dict[str, Any] = Field(default_factory=dict)
+
+    def build_ccxt_config(self) -> Dict[str, Any]:
         config = {
-            "apiKey": self.api_key,
-            "secret": self.api_secret,
             "enableRateLimit": self.enable_rate_limit,
             "timeout": self.timeout,
             "retries": self.retries,
-            "options": {
-                "defaultType": "future",  # 使用期货交易
-            },
         }
-
-        # 设置测试/沙盒模式
+        if self.options:
+            config["options"] = self.options
+        config.update(self.credentials)
         if self.testnet or self.sandbox:
-            if "binance" in self.name.lower():
-                config["sandbox"] = True
-            elif "okx" in self.name.lower():
-                config["sandbox"] = True
-
+            config["sandbox"] = True
         return config
-
 
 class RiskConfig(BaseModel):
     max_position_size_percent: float
@@ -128,6 +130,7 @@ class SystemConfig(BaseModel):
 class AppConfig(BaseModel):
     agent: AgentConfig
     exchange: ExchangeConfig
+    exchanges: Dict[str, ExchangeEntryConfig] = Field(default_factory=dict)
     default_risk: RiskConfig
     account_snapshot: AccountSnapshotConfig
     logging: LoggingConfig
@@ -140,11 +143,15 @@ class AppConfig(BaseModel):
         if not self.agent.api_key or self.agent.api_key.startswith("${"):
             missing_vars.append("OPENAI_API_KEY")
 
-        if not self.exchange.api_key or self.exchange.api_key.startswith("${"):
-            missing_vars.append("BINANCE_API_KEY")
-
-        if not self.exchange.api_secret or self.exchange.api_secret.startswith("${"):
-            missing_vars.append("BINANCE_API_SECRET")
+        if self.exchanges:
+            for name, exchange_entry in self.exchanges.items():
+                for cred_key, cred_value in exchange_entry.credentials.items():
+                    if not cred_value:
+                        missing_vars.append(f"{name}.{cred_key}")
+                        continue
+                    env_var = extract_env_var_name(cred_value)
+                    if env_var:
+                        missing_vars.append(env_var)
 
         return missing_vars
 
@@ -152,10 +159,29 @@ class AppConfig(BaseModel):
         """检查是否为测试模式"""
         return (
             self.exchange.testnet
-            or not self.agent.api_key
-            or not self.exchange.api_key
-            or not self.exchange.api_secret
+            or any(entry.testnet or entry.sandbox for entry in self.exchanges.values())
         )
+
+    def get_exchange_entry(self, name: Optional[str]) -> Optional[ExchangeEntryConfig]:
+        if not name:
+            return None
+        name_lower = name.lower()
+        for key, entry in self.exchanges.items():
+            if key.lower() == name_lower:
+                return entry
+        return None
+
+    def require_exchange_entry(self, name: str) -> ExchangeEntryConfig:
+        entry = self.get_exchange_entry(name)
+        if entry is None:
+            raise ValueError(f"未找到交易所配置: {name}")
+        return entry
+
+    def get_default_leverage(self, name: Optional[str] = None) -> int:
+        entry = self.get_exchange_entry(name or self.exchange.name)
+        if entry and entry.default_leverage:
+            return entry.default_leverage
+        return 1
 
 
 def load_app_config() -> AppConfig:

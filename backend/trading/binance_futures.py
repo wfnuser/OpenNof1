@@ -20,7 +20,13 @@ class BinanceFuturesTrader(ExchangeTrader):
         try:
             # 创建CCXT Binance Futures实例
             from config.settings import config
-            exchange_config = config.exchange.get_ccxt_config()
+            exchange_entry = config.get_exchange_entry("binance_futures")
+            if exchange_entry is None:
+                raise ValueError("未找到 Binance Futures 配置")
+
+            exchange_config = exchange_entry.build_ccxt_config()
+            options = exchange_config.setdefault("options", {})
+            options.setdefault("defaultType", "future")
             self.exchange = ccxt.binance(exchange_config)
             
             # 设置默认类型为期货

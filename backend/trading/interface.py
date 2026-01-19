@@ -42,13 +42,14 @@ class OrderResult:
     side: str  # "BUY" or "SELL"
     order_type: str  # "MARKET", "LIMIT", etc.
     quantity: float
-    price: float
+    price: Optional[float]  # 市价单可能为None
     executed_quantity: float
-    executed_price: float
+    executed_price: Optional[float]  # 可能为None
     status: str  # "FILLED", "PARTIALLY_FILLED", "CANCELLED", "FAILED"
     fees: float
     timestamp: datetime
     exchange: str
+    raw_data: Optional[Dict[str, Any]] = None  # 原始交易所返回数据
 
 
 class ExchangeTrader(ABC):
